@@ -2,13 +2,7 @@ from modules import get_query, get_top2, load_top2, VLM
 import pandas as pd
 
 class Reranker:
-    def __init__(self, root_dir, csv_path, private_dir):
-        self.root_dir = root_dir
-        self.csv_path = csv_path
-        self.private_dir = private_dir
-        
-        self.output_top2_path = f"{self.root_dir}/top2.json"
-        self.text_query_path = f"{self.root_dir}/query_texts.json"
+    def __init__(self):
         self.model, self.tokenizer, self.generation_config = VLM.load_model()
         self.reranked = []
 
@@ -40,7 +34,6 @@ class Reranker:
 
     def save_reranked_results(self, output_csv='reranked_file.csv'):
         df = pd.read_csv(self.csv_path, header=None)
-        
         rerank_dict = {item['query_id']: item['objects'] for item in self.reranked}
         
         def update_row(row):
@@ -62,11 +55,14 @@ class Reranker:
         self.rerank(num_queries)
         self.save_reranked_results(output_csv)
 
-# Cách dùng
-if __name__ == "__main__":
-    root_dir = "/root/Rerank/important_code"
-    csv_path = "/root/Rerank/important_code/MealsRetrieval_1.csv"
-    private_dir = "/root/Rerank/important_code/private"
-    
-    reranker = Reranker(root_dir, csv_path, private_dir)
-    reranker.run(num_queries=50, output_csv="reranked_file.csv")
+    def __call__(self, csv_path, private_dir):
+        self.csv_path = csv_path
+        self.private_dir = private_dir
+        self.output_top2_path = "./top2.json"
+        self.text_query_path = "./query_texts.json"
+        self.reranked = []
+        self.run(num_queries=50, output_csv="reranked_file.csv")
+        
+
+
+

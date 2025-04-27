@@ -90,7 +90,7 @@ def load_model():
         trust_remote_code=True).eval().cuda()
     tokenizer = AutoTokenizer.from_pretrained(path, trust_remote_code=True, use_fast=False)
 
-    generation_config = dict(max_new_tokens=1024, do_sample=True, temperature=0.1)
+    generation_config = dict(max_new_tokens=1024, do_sample=True, temperature=0.01)
     return model, tokenizer, generation_config
 
 

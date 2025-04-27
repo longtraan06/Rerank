@@ -3,77 +3,74 @@ import get_top2
 import get_query
 import lmaolmao
 import VLM
-root_dir = "/root/Rerank" # replace with your root folder dir
-csv_path = "/root/Rerank/MealsRetrieval_1.csv" # replace with your csv path
-private_dir = "/root/Rerank/private"  # replace with your private folder path
-
-model, tokenizer, generation_config = VLM.load_model()
-# model, processor, device = lmaolmao.load_model()
-
-output_top2_path = root_dir + "/top2.json"
-get_top2.main(csv_path, output_top2_path)
-
-text_query_path =  root_dir + "/query_texts.json"
-get_query.main(output_top2_path, private_dir + "/scenes", text_query_path)
-reranked = []
-
-# rerank in here
-for index in range(50):
-    #get text query, object_ids_path (object name), query id( query name )
-    query, object_ids, query_id = load_top2.main(index, text_query_path, output_top2_path)
-    #create query image path
-    query_image_path = private_dir + "/scenes/" + query_id + "/masked.png"
-    #create object image path of top 2 
-    objects_path = []
-    for i in range(2):
-        objects_path. append(private_dir + "/objects/" + object_ids[i] + "/image.jpg")
-    """
-        tổng tất cả các biến có thể sử dụng là :
-            query : text desciption
-            query_image_path : ảnh panoramic
-            object_ids_path : list 2 path dẫn đến ảnh của top 2 object
-    """
-    # reraking
-    
-
-    # rerank_part = lmaolmao.main(query_id, query_image_path, query, objects_path[0], objects_path[1], object_ids[0], object_ids[1], processor, model, device)
-    rerank_part = VLM.main(model, tokenizer, generation_config, objects_path, object_ids, query, query_id, query_image_path)
-    reranked.append(rerank_part)
-
-print(len(reranked))
 import pandas as pd
 
-# 1. Đọc file CSV gốc
-df = pd.read_csv(csv_path, header=None)
-
-# 2. Tạo dictionary từ kết quả rerank để tra cứu nhanh
-rerank_dict = {item['query_id']: item['objects'] for item in reranked}
-
-# 3. Hàm cập nhật từng dòng
-def update_row(row):
-    query_id = row[0]
-    if query_id in rerank_dict:
-        # Lấy top 2 mới từ kết quả rerank
-        new_top2 = rerank_dict[query_id]
+class Reranker:
+    def __init__(self, root_dir, csv_path, private_dir):
+        self.root_dir = root_dir
+        self.csv_path = csv_path
+        self.private_dir = private_dir
         
-        # Giữ nguyên các item từ vị trí thứ 3 trở đi
-        remaining_items = row[3:11].tolist()  # Các cột từ 3 đến 10 (index 2:10)
-        
-        # Tạo hàng mới: query_id + new_top2 + các item còn lại
-        updated_row = [query_id] + new_top2 + remaining_items
-        
-        # Đảm bảo đủ 11 cột (query_id + 10 items)
-        if len(updated_row) < 11:
-            updated_row += [''] * (11 - len(updated_row))
-        
-        return pd.Series(updated_row)
-    return row
+        self.output_top2_path = f"{self.root_dir}/top2.json"
+        self.text_query_path = f"{self.root_dir}/query_texts.json"
+        self.model, self.tokenizer, self.generation_config = VLM.load_model()
+        self.reranked = []
 
-# 4. Áp dụng cập nhật cho toàn bộ DataFrame
-updated_df = df.apply(update_row, axis=1)
+    def prepare_top2_and_queries(self):
+        get_top2.main(self.csv_path, self.output_top2_path)
+        get_query.main(self.output_top2_path, f"{self.private_dir}/scenes", self.text_query_path)
 
-# 5. Ghi ra file mới
-updated_df.to_csv('reranked_file.csv', index=False, header=False)
+    def rerank(self, num_queries=50):
+        for index in range(num_queries):
+            query, object_ids, query_id = load_top2.main(index, self.text_query_path, self.output_top2_path)
+            
+            query_image_path = f"{self.private_dir}/scenes/{query_id}/masked.png"
+            objects_path = [
+                f"{self.private_dir}/objects/{object_ids[0]}/image.jpg",
+                f"{self.private_dir}/objects/{object_ids[1]}/image.jpg"
+            ]
+            
+            rerank_part = VLM.main(
+                self.model,
+                self.tokenizer,
+                self.generation_config,
+                objects_path,
+                object_ids,
+                query,
+                query_id,
+                query_image_path
+            )
+            self.reranked.append(rerank_part)
 
+    def save_reranked_results(self, output_csv='reranked_file.csv'):
+        df = pd.read_csv(self.csv_path, header=None)
+        
+        rerank_dict = {item['query_id']: item['objects'] for item in self.reranked}
+        
+        def update_row(row):
+            query_id = row[0]
+            if query_id in rerank_dict:
+                new_top2 = rerank_dict[query_id]
+                remaining_items = row[3:11].tolist()
+                updated_row = [query_id] + new_top2 + remaining_items
+                if len(updated_row) < 11:
+                    updated_row += [''] * (11 - len(updated_row))
+                return pd.Series(updated_row)
+            return row
+        
+        updated_df = df.apply(update_row, axis=1)
+        updated_df.to_csv(output_csv, index=False, header=False)
+
+    def run(self, num_queries=50, output_csv='reranked_file.csv'):
+        self.prepare_top2_and_queries()
+        self.rerank(num_queries)
+        self.save_reranked_results(output_csv)
+
+# Cách dùng
+if __name__ == "__main__":
+    root_dir = "/root/Rerank"
+    csv_path = "/root/MealsRetrieval_1.csv"
+    private_dir = "/root/Rerank/private"
     
-
+    reranker = Reranker(root_dir, csv_path, private_dir)
+    reranker.run(num_queries=50, output_csv="reranked_file.csv")

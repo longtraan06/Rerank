@@ -1,12 +1,14 @@
 import load_top2
 import get_top2
 import get_query
+import lmaolmao
 import VLM
 root_dir = "/root/Rerank" # replace with your root folder dir
-csv_path = "/root/false_room.csv" # replace with your csv path
+csv_path = "/root/MealsRetrieval_1.csv" # replace with your csv path
 private_dir = "/root/Rerank/private"  # replace with your private folder path
 
 model, tokenizer, generation_config = VLM.load_model()
+# model, processor, device = lmaolmao.load_model()
 
 output_top2_path = root_dir + "/top2.json"
 get_top2.main(csv_path, output_top2_path)
@@ -16,7 +18,7 @@ get_query.main(output_top2_path, private_dir + "/scenes", text_query_path)
 reranked = []
 
 # rerank in here
-for index in range(5):
+for index in range(50):
     #get text query, object_ids_path (object name), query id( query name )
     query, object_ids, query_id = load_top2.main(index, text_query_path, output_top2_path)
     #create query image path
@@ -34,8 +36,10 @@ for index in range(5):
     # reraking
     
 
+    # rerank_part = lmaolmao.main(query_id, query_image_path, query, objects_path[0], objects_path[1], object_ids[0], object_ids[1], processor, model, device)
     rerank_part = VLM.main(model, tokenizer, generation_config, objects_path, object_ids, query, query_id, query_image_path)
     reranked.append(rerank_part)
+
 print(len(reranked))
 import pandas as pd
 

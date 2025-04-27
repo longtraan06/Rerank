@@ -1,12 +1,12 @@
 import load_top2
 import get_top2
 import get_query
-import vlm2
+import ecec
 root_dir = "/root/Rerank" # replace with your root folder dir
 csv_path = "/root/Rerank/MealsRetrieval0.9283.csv" # replace with your csv path
 private_dir = "/root/Rerank/private"  # replace with your private folder path
 
-model, tokenizer, generation_config = vlm2.load_model()
+# model, tokenizer, generation_config = ecec.load_model()
 
 output_top2_path = root_dir + "/top2.json"
 get_top2.main(csv_path, output_top2_path)
@@ -38,7 +38,7 @@ for index in range(50):
     # reraking
     
 
-    rerank_part = vlm2.main(model, tokenizer, generation_config, objects_path, object_ids, query, query_id)
+    rerank_part = ecec.main(objects_path, object_ids, query, query_id)
     reranked.append(rerank_part)
 
 import pandas as pd

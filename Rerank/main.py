@@ -1,4 +1,4 @@
-from modules import get_query, get_top2, load_top2, VLM
+from .modules import get_query, get_top2, load_top2, VLM
 import pandas as pd
 
 class Reranker:

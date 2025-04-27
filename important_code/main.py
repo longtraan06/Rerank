@@ -1,5 +1,4 @@
-from modules import get_query, get_top2, load_top2
-import VLM
+from modules import get_query, get_top2, load_top2, VLM
 import pandas as pd
 
 class Reranker:
@@ -66,8 +65,8 @@ class Reranker:
 # Cách dùng
 if __name__ == "__main__":
     root_dir = "/root/Rerank/important_code"
-    csv_path = "/root/HLongtest/MealsRetrieval_1.csv"
-    private_dir = "/root/Rerank/private"
+    csv_path = "/root/Rerank/important_code/MealsRetrieval_1.csv"
+    private_dir = "/root/Rerank/important_code/private"
     
     reranker = Reranker(root_dir, csv_path, private_dir)
     reranker.run(num_queries=50, output_csv="reranked_file.csv")

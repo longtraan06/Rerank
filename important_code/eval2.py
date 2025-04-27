@@ -58,7 +58,7 @@ def evaluate_file(test_csv_path, groundtruth_list):
 # Run the evaluator
 if __name__ == "__main__":
     groundtruth = load_groundtruth('Evaluate.csv')
-    result = evaluate_file('/root/Rerank/reranked_file.csv', groundtruth)
+    result = evaluate_file('/root/Rerank/important_code/reranked_file.csv', groundtruth)
     print("Score:", result["score"])
     print("\nFalse Scenes:")
     df = pd.DataFrame(result['false_scenes'])

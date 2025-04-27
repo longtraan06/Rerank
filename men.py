@@ -1,12 +1,12 @@
 import load_top2
 import get_top2
 import get_query
-import VLM
+import vlm2
 root_dir = "/root/Rerank" # replace with your root folder dir
-csv_path = "/root/Rerank/MealsRetrieval_1.csv" # replace with your csv path
+csv_path = "/root/Rerank/MealsRetrieval0.9283.csv" # replace with your csv path
 private_dir = "/root/Rerank/private"  # replace with your private folder path
 
-model, tokenizer, generation_config = VLM.load_model()
+model, tokenizer, generation_config = vlm2.load_model()
 
 output_top2_path = root_dir + "/top2.json"
 get_top2.main(csv_path, output_top2_path)
@@ -22,9 +22,12 @@ for index in range(50):
     #create query image path
     query_image_path = private_dir + "/scenes/" + query_id + "/masked.png"
     #create object image path of top 2 
+    print(object_ids)
+    print(query)
     objects_path = []
     for i in range(2):
         objects_path. append(private_dir + "/objects/" + object_ids[i] + "/image.jpg")
+    print(objects_path)
     """
         tổng tất cả các biến có thể sử dụng là :
             query : text desciption
@@ -34,13 +37,13 @@ for index in range(50):
     # reraking
     
 
-    rerank_part = VLM.main(model, tokenizer, generation_config, objects_path, object_ids, query, query_id)
+    rerank_part = vlm2.main(model, tokenizer, generation_config, objects_path, object_ids, query, query_id)
     reranked.append(rerank_part)
-print(len(reranked))
+
 import pandas as pd
 
 # 1. Đọc file CSV gốc
-df = pd.read_csv(csv_path, header=None)
+df = pd.read_csv('/root/Rerank/MealsRetrieval0.9283.csv', header=None)
 
 # 2. Tạo dictionary từ kết quả rerank để tra cứu nhanh
 rerank_dict = {item['query_id']: item['objects'] for item in reranked}

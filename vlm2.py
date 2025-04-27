@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import torchvision.transforms as T
-from decord import VideoReader, cpu
+# from decord import VideoReader, cpu
 from PIL import Image
 from torchvision.transforms.functional import InterpolationMode
 from transformers import AutoModel, AutoTokenizer, set_seed
@@ -81,12 +81,12 @@ def load_image(image_file, input_size=448, max_num=6):
     return pixel_values
 
 def load_model():
-    path = 'OpenGVLab/InternVL2_5-4B-MPO'
+    path = 'omlab/Qwen2.5VL-3B-VLM-R1-REC-500steps'
     model = AutoModel.from_pretrained(
         path,
         torch_dtype=torch.bfloat16,
         low_cpu_mem_usage=True,
-        use_flash_attn=True,
+        # use_flash_attn=True,
         trust_remote_code=True).eval().cuda()
     tokenizer = AutoTokenizer.from_pretrained(path, trust_remote_code=True, use_fast=False)
 
@@ -95,44 +95,53 @@ def load_model():
 
 
 def main(model, tokenizer, generation_config, images_list, object_ids, query, query_id):
-    # multi-image multi-round conversation, combined images
-    pixel_values1 = load_image(images_list[0], max_num=12).to(torch.bfloat16).cuda()
-    pixel_values2 = load_image(images_list[1], max_num=12).to(torch.bfloat16).cuda()
+    # 1) Load và preprocess ảnh room, cand1, cand2
+    pv_room = load_image(images_list[0], max_num=1).to(torch.bfloat16).cuda()
+    pv_c1   = load_image(images_list[1], max_num=1).to(torch.bfloat16).cuda()
+    pv_c2   = load_image(images_list[2], max_num=1).to(torch.bfloat16).cuda()
+    pixel_values = torch.cat([pv_room, pv_c1, pv_c2], dim=0)
 
+    # 2) Xây prompt từ content list
+    content = [
+        {"type": "text",  "text": "Reference Room Scene (with a missing object area):"},
+        {"type": "image"},   # room
+        {"type": "text",  "text": f"\nQuery/Description: {query}\n"},
+        {"type": "text",  "text": f"Candidate Object 1 ({object_ids[1]}):"},
+        {"type": "image"},   # cand1
+        {"type": "text",  "text": f"Candidate Object 2 ({object_ids[2]}):"},
+        {"type": "image"},   # cand2
+        {"type": "text",  "text": (
+            "\nTask: Compare Candidate 1 and Candidate 2. "
+            "Which SINGLE candidate fits best? "
+            "Respond ONLY with '<think>...'</think>' then '<answer>1 or 2</answer>'."
+        )}
+    ]
+    prompt_lines = []
+    for item in content:
+        if item["type"] == "text":
+            prompt_lines.append(item["text"])
+        else:  # image
+            prompt_lines.append("<image>")
+    prompt = "\n".join(prompt_lines)
 
-    pixel_values = torch.cat((pixel_values1, pixel_values2), dim=0)
+    # 3) Gọi model.chat với prompt và pixel_values đúng thứ tự
+    response, history = model.chat(
+        tokenizer,
+        pixel_values,
+        prompt,
+        generation_config,
+        history=None,
+        return_history=True
+    )
 
-    question = f"""<image>\nYou are given two images of furniture items. Carefully observe both images and decide which one matches the following description most accurately:
-
-"{query}"
-
-Focus specifically on:
-- The color of the furniture.
-- The type/category of the furniture.
-- The intended function or use of the furniture.
-
-Please answer strictly with "1" if the first image matches better, or "2" if the second image matches better. No explanation is needed.
-    """ 
-    response, history = model.chat(tokenizer, pixel_values, question, generation_config,
-                                history=None, return_history=True)
- 
+    # 4) Parse kết quả
     import re
-    match = re.search(r'\d+', response)  # Tìm số trong chuỗi
-    if match:
-        number = int(match.group())
-        print(number)  # Output: 1    
-
-    top1 = int(number)
-    print("top 1 is: ", object_ids[int(number)-1])
-    if top1 == 2:
-        tmp = object_ids[0]
-        object_ids[0] = object_ids[1]
-        object_ids[1] = tmp
-
-    rerank_results ={ 
-    "query_id": query_id,
-      "objects": object_ids
-    }
-    return rerank_results
-    # number = int(response.split()[-1])  # Lấy phần tử cuối cùng và chuyển thành số
-    # print(number)
+    m = re.search(r'<answer>\s*([12])\s*</answer>', response)
+    if not m:
+        print(f"[ERROR] No valid <answer> in response: {response}")
+        return None
+    choice = int(m.group(1))
+    winner_id = object_ids[choice]
+    print(f"[RESULT] query_id={query_id} → WINNER: {winner_id}")
+    print(f"[REASON]\n{response}")
+    return {"query_id": query_id, "winner": winner_id}

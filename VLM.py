@@ -90,7 +90,7 @@ def load_model():
         trust_remote_code=True).eval().cuda()
     tokenizer = AutoTokenizer.from_pretrained(path, trust_remote_code=True, use_fast=False)
 
-    generation_config = dict(max_new_tokens=1024, do_sample=True)
+    generation_config = dict(max_new_tokens=1024, do_sample=True, temperature=0.1)
     return model, tokenizer, generation_config
 
 
@@ -103,19 +103,25 @@ def main(model, tokenizer, generation_config, images_list, object_ids, query, qu
 
     pixel_values = torch.cat(( pixel_values1, pixel_values2), dim=0)
 
-    question = f"""<image>\n<image>
+    question = f"""<image>\n
 
-You are given two images of furniture items. Carefully observe both images and decide which one matches the following description most accurately:
+You are given two images of furniture items. Your task is to carefully examine both images and determine which one matches the following description most accurately:
 
 "{query}"
 
-Focus specifically on:
-- The color of the furniture.
-- The type/category of the furniture.
-- The intended function or use of the furniture.
+You must strictly focus on:
+- **Color**: Compare the exact colors described with those visible in the images.
+- **Material and texture**: Identify the material (e.g., wood, leather, fabric) and texture (e.g., smooth, rough) if mentioned.
+- **Type and style**: Recognize the specific type of furniture (e.g., chair, sofa, table) and its style (e.g., modern, vintage, minimalist).
+- **Functionality**: Consider the intended use of the item (e.g., relaxing, working, dining).
 
-Please answer strictly with "1" if the first image matches better, or "2" if the second image matches better. No explanation is needed.
-.""" 
+**Important Instructions:**
+- Pay close attention to small details in the description.
+- Do not generalize based on overall appearance; match based on listed features.
+- If both images partially match, choose the one that aligns better with the most critical elements of the description (color and type are highest priority).
+- Provide only the answer: "1" if the first image matches better, or "2" if the second image matches better. No explanation needed.
+
+Focus on accuracy. Only choose based on detailed matching.""" 
     response, history = model.chat(tokenizer, pixel_values, question, generation_config,
                                 history=None, return_history=True)
  

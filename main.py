@@ -4,7 +4,7 @@ import get_query
 import lmaolmao
 import VLM
 root_dir = "/root/Rerank" # replace with your root folder dir
-csv_path = "/root/MealsRetrieval_1.csv" # replace with your csv path
+csv_path = "/root/Rerank/MealsRetrieval_1.csv" # replace with your csv path
 private_dir = "/root/Rerank/private"  # replace with your private folder path
 
 model, tokenizer, generation_config = VLM.load_model()

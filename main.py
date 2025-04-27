@@ -3,7 +3,7 @@ import get_top2
 import get_query
 import VLM
 root_dir = "/root/Rerank" # replace with your root folder dir
-csv_path = "/root/Rerank/MealsRetrieval_1.csv" # replace with your csv path
+csv_path = "/root/false_room.csv" # replace with your csv path
 private_dir = "/root/Rerank/private"  # replace with your private folder path
 
 model, tokenizer, generation_config = VLM.load_model()
@@ -16,7 +16,7 @@ get_query.main(output_top2_path, private_dir + "/scenes", text_query_path)
 reranked = []
 
 # rerank in here
-for index in range(50):
+for index in range(5):
     #get text query, object_ids_path (object name), query id( query name )
     query, object_ids, query_id = load_top2.main(index, text_query_path, output_top2_path)
     #create query image path
@@ -34,7 +34,7 @@ for index in range(50):
     # reraking
     
 
-    rerank_part = VLM.main(model, tokenizer, generation_config, objects_path, object_ids, query, query_id)
+    rerank_part = VLM.main(model, tokenizer, generation_config, objects_path, object_ids, query, query_id, query_image_path)
     reranked.append(rerank_part)
 print(len(reranked))
 import pandas as pd

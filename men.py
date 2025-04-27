@@ -25,6 +25,7 @@ for index in range(50):
     print(object_ids)
     print(query)
     objects_path = []
+    objects_path.append(query_image_path)
     for i in range(2):
         objects_path. append(private_dir + "/objects/" + object_ids[i] + "/image.jpg")
     print(objects_path)
@@ -72,7 +73,7 @@ def update_row(row):
 updated_df = df.apply(update_row, axis=1)
 
 # 5. Ghi ra file mới
-updated_df.to_csv('reranked_file.csv', index=False, header=False)
+updated_df.to_csv('r1ranked_file.csv', index=False, header=False)
 
     
 

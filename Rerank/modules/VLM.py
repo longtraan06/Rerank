@@ -127,11 +127,11 @@ Focus on accuracy. Only choose based on detailed matching."""
     match = re.search(r'\d+', response)  # Tìm số trong chuỗi
     if match:
         number = int(match.group())
-        print(number)  # Output: 1    
+        # print(number)  # Output: 1    
 
     top1 = int(number)
-    print("top 1 is: ", Rerank_list[int(number)])
     if top1 == 2:
+        print("New top 1 is: ", Rerank_list[top1])
         tmp = Rerank_list[1]
         Rerank_list[1] = Rerank_list[2]
         Rerank_list[2] = tmp

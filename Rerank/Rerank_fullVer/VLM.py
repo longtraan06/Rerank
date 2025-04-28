@@ -92,7 +92,7 @@ def load_model():
     return model, tokenizer, generation_config
 
 
-def main(model, tokenizer, generation_config, images_list, Rerank_list, query, query_id):
+def main(model, tokenizer, generation_config, images_list, object_ids, query, query_id, query_image_path):
     # multi-image multi-round conversation, combined images
     pixel_values1 = load_image(images_list[0], max_num=12).to(torch.bfloat16).cuda()
     pixel_values2 = load_image(images_list[1], max_num=12).to(torch.bfloat16).cuda()
@@ -130,10 +130,16 @@ Focus on accuracy. Only choose based on detailed matching."""
         print(number)  # Output: 1    
 
     top1 = int(number)
-    print("top 1 is: ", Rerank_list[int(number)])
+    print("top 1 is: ", object_ids[int(number)-1])
     if top1 == 2:
-        tmp = Rerank_list[1]
-        Rerank_list[1] = Rerank_list[2]
-        Rerank_list[2] = tmp
+        tmp = object_ids[0]
+        object_ids[0] = object_ids[1]
+        object_ids[1] = tmp
 
-    return Rerank_list
+    rerank_results ={ 
+    "query_id": query_id,
+      "objects": object_ids
+    }
+    return rerank_results
+    # number = int(response.split()[-1])  # Lấy phần tử cuối cùng và chuyển thành số
+    # print(number)
